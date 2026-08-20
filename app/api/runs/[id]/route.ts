@@ -41,6 +41,8 @@ export async function GET(
         executedAt: testResults.executedAt,
         testCase: {
           id: testCases.id,
+          code: testCases.code,
+          caseNumber: testCases.caseNumber,
           title: testCases.title,
           module: testCases.module,
           priority: testCases.priority,
@@ -69,7 +71,7 @@ export async function GET(
         skipped,
         pending,
         progressPercent: total > 0 ? Math.round(((total - pending) / total) * 100) : 0,
-        passRate: total - pending > 0 ? Math.round((passed / (total - pending)) * 100) : 0,
+        passRate: total > 0 ? Math.round((passed / total) * 100) : 0,
       },
     });
   } catch (error) {

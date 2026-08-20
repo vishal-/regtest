@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 
 interface ProjectOption {
   id: number;
+  key?: string;
   name: string;
   isOwner?: boolean;
 }
@@ -41,8 +42,9 @@ export function Sidebar() {
       .then((data) => {
         if (data.projects) {
           setProjectsList(
-            data.projects.map((p: { id: number; name: string; isOwner?: boolean }) => ({
+            data.projects.map((p: { id: number; key?: string; name: string; isOwner?: boolean }) => ({
               id: p.id,
+              key: p.key,
               name: p.name,
               isOwner: p.isOwner,
             }))
@@ -77,9 +79,11 @@ export function Sidebar() {
       {/* Brand Header */}
       <div className="h-16 border-b border-slate-800/80 flex items-center justify-between px-5">
         <Link href="/dashboard" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/20 group-hover:scale-105 transition-transform">
-            <ShieldCheck className="w-5 h-5 text-white" />
-          </div>
+          <img
+            src="/logo-main.png"
+            alt="RegTest Logo"
+            className="w-8 h-8 rounded-lg object-contain group-hover:scale-105 transition-transform drop-shadow-sm"
+          />
           <div>
             <span className="font-bold text-white tracking-tight flex items-center gap-1.5 text-base">
               RegTest <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-mono">Hub</span>
@@ -147,11 +151,15 @@ export function Sidebar() {
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
                     )}
                   >
-                    <div className="flex items-center gap-2.5 truncate">
+                    <div className="flex items-center gap-2 truncate">
                       <FolderGit2 className="w-3.5 h-3.5 shrink-0 text-slate-500 group-hover:text-cyan-400" />
                       <span className="truncate">{p.name}</span>
                     </div>
-                    <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 text-slate-500 transition-opacity" />
+                    {p.key && (
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-800 text-cyan-400/90 shrink-0">
+                        {p.key}
+                      </span>
+                    )}
                   </Link>
                 );
               })

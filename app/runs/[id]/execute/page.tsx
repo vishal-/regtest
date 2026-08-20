@@ -22,11 +22,12 @@ import {
   Keyboard,
   CheckCheck,
 } from 'lucide-react';
-import { StatusBadge, PriorityBadge, ModuleTag } from '@/components/ui/badges';
+import { StatusBadge, PriorityBadge, ModuleTag, TestCaseCodeBadge } from '@/components/ui/badges';
 import confetti from 'canvas-confetti';
 
 interface TestCaseInfo {
   id: number;
+  code?: string;
   title: string;
   module: string;
   priority: string;
@@ -276,7 +277,21 @@ export default function RunExecutionPage({
     <div className="h-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden antialiased select-none">
       {/* TOP RUNNER NAVIGATION HEADER */}
       <header className="h-16 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-30">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 group shrink-0"
+            title="Go to Dashboard"
+          >
+            <img
+              src="/logo-main.png"
+              alt="RegTest Logo"
+              className="w-7 h-7 rounded-lg object-contain group-hover:scale-105 transition-transform"
+            />
+          </Link>
+
+          <div className="h-4 w-px bg-slate-800" />
+
           <Link
             href={`/runs/${run.id}`}
             className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-400 transition-colors p-1.5 rounded-lg hover:bg-slate-900"
@@ -411,7 +426,8 @@ export default function RunExecutionPage({
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <TestCaseCodeBadge code={r.testCase.code || `TC-${r.testCase.id}`} />
                       <PriorityBadge priority={r.testCase.priority} size="sm" />
                       <ModuleTag module={r.testCase.module} />
                     </div>
@@ -454,7 +470,11 @@ export default function RunExecutionPage({
             <div className="space-y-6">
               {/* Test Header */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <TestCaseCodeBadge
+                    code={currentResult.testCase.code || `TC-${currentResult.testCase.id}`}
+                    className="text-xs px-2.5 py-1"
+                  />
                   <span className="text-xs font-mono text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20">
                     Test #{activeIndex + 1} of {results.length}
                   </span>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureTablesExist } from '@/lib/db';
-import { testCases } from '@/lib/db/schema';
+import { projects, testCases } from '@/lib/db/schema';
+import { generateProjectKey } from '@/lib/utils';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(
@@ -16,7 +17,7 @@ export async function GET(
       .select()
       .from(testCases)
       .where(eq(testCases.projectId, numericProjectId))
-      .orderBy(desc(testCases.createdAt));
+      .orderBy(testCases.caseNumber);
 
     return NextResponse.json({ testCases: list });
   } catch (error) {
@@ -43,10 +44,37 @@ export async function POST(
       );
     }
 
+    // Fetch project to retrieve its key initials
+    const projList = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, numericProjectId))
+      .limit(1);
+
+    const projectKey = projList[0]?.key || (projList[0] ? generateProjectKey(projList[0].name) : 'TC');
+
+    // Find next case number for this project
+    const existingCases = await db
+      .select({ caseNumber: testCases.caseNumber })
+      .from(testCases)
+      .where(eq(testCases.projectId, numericProjectId));
+
+    let maxNumber = 0;
+    existingCases.forEach((c) => {
+      if (c.caseNumber && c.caseNumber > maxNumber) {
+        maxNumber = c.caseNumber;
+      }
+    });
+
+    const nextCaseNumber = maxNumber + 1;
+    const testCaseCode = `${projectKey}-${nextCaseNumber}`;
+
     const inserted = await db
       .insert(testCases)
       .values({
         projectId: numericProjectId,
+        caseNumber: nextCaseNumber,
+        code: testCaseCode,
         title,
         module,
         priority: priority.toUpperCase(),

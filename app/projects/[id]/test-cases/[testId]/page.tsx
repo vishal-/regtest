@@ -18,12 +18,13 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Header } from '@/components/layout/header';
-import { PriorityBadge, StatusBadge, ModuleTag } from '@/components/ui/badges';
+import { PriorityBadge, StatusBadge, ModuleTag, TestCaseCodeBadge } from '@/components/ui/badges';
 import { formatDate } from '@/lib/utils';
 
 interface TestCaseDetail {
   id: number;
   projectId: number;
+  code?: string;
   module: string;
   priority: string;
   title: string;
@@ -289,6 +290,7 @@ export default function TestCaseDetailPage({
           <div className="space-y-6">
             <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-sm space-y-6">
               <div className="flex flex-wrap items-center gap-3">
+                <TestCaseCodeBadge code={testCase.code || `TC-${testCase.id}`} className="text-xs px-2.5 py-1" />
                 <PriorityBadge priority={testCase.priority} size="md" />
                 <ModuleTag module={testCase.module} className="text-xs px-3 py-1" />
                 <span className="text-xs text-slate-500 font-mono">

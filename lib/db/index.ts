@@ -16,7 +16,7 @@ export const client = createClient({
 
 export const db = drizzle(client, { schema });
 
-// Helper to auto-create tables if they don't exist yet
+// Helper to auto-create tables, unique constraints and migrate missing columns
 let tablesInitialized = false;
 
 export async function ensureTablesExist() {
@@ -25,7 +25,8 @@ export async function ensureTablesExist() {
     await client.execute(`
       CREATE TABLE IF NOT EXISTS projects (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
+        key TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL UNIQUE,
         description TEXT,
         user_id TEXT NOT NULL,
         created_at TEXT NOT NULL
@@ -47,6 +48,8 @@ export async function ensureTablesExist() {
       CREATE TABLE IF NOT EXISTS test_cases (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         project_id INTEGER NOT NULL,
+        case_number INTEGER NOT NULL DEFAULT 1,
+        code TEXT NOT NULL DEFAULT 'TC-1',
         module TEXT NOT NULL,
         priority TEXT NOT NULL,
         title TEXT NOT NULL,
@@ -78,6 +81,28 @@ export async function ensureTablesExist() {
         executed_at TEXT
       );
     `);
+
+    // Safe column migrations in case tables existed previously
+    try {
+      await client.execute(`ALTER TABLE projects ADD COLUMN key TEXT NOT NULL DEFAULT 'PRJ';`);
+    } catch (_) {}
+
+    try {
+      await client.execute(`ALTER TABLE test_cases ADD COLUMN case_number INTEGER NOT NULL DEFAULT 1;`);
+    } catch (_) {}
+
+    try {
+      await client.execute(`ALTER TABLE test_cases ADD COLUMN code TEXT NOT NULL DEFAULT 'TC-1';`);
+    } catch (_) {}
+
+    // Enforce unique indexes for project key and project name
+    try {
+      await client.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_key ON projects(key);`);
+    } catch (_) {}
+
+    try {
+      await client.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_name ON projects(name);`);
+    } catch (_) {}
 
     tablesInitialized = true;
   } catch (err) {
