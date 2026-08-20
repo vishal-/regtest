@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureTablesExist } from '@/lib/db';
-import { testCases, testResults, testRuns } from '@/lib/db/schema';
+import { testCases, testResults, testRuns, projects } from '@/lib/db/schema';
+import { generateProjectKey } from '@/lib/utils';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(
@@ -24,6 +25,13 @@ export async function GET(
 
     const testCase = caseList[0];
 
+    let code = testCase.code;
+    if (!code) {
+      const proj = await db.select({ key: projects.key, name: projects.name }).from(projects).where(eq(projects.id, testCase.projectId)).limit(1);
+      const pKey = proj[0]?.key || (proj[0] ? generateProjectKey(proj[0].name) : 'TC');
+      code = `${pKey}-${testCase.caseNumber || testCase.id}`;
+    }
+
     // Fetch execution history for this test case
     const history = await db
       .select({
@@ -42,7 +50,10 @@ export async function GET(
       .orderBy(desc(testRuns.executedAt));
 
     return NextResponse.json({
-      testCase,
+      testCase: {
+        ...testCase,
+        code,
+      },
       history,
     });
   } catch (error) {

@@ -11,19 +11,30 @@ import {
   HelpCircle,
   Building2,
   Layers,
+  Key,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Header } from '@/components/layout/header';
 import { useAuth } from '@/lib/firebase/auth-context';
+import { generateProjectKey } from '@/lib/utils';
 
 export default function NewProjectPage() {
   const router = useRouter();
   const { user } = useAuth();
 
   const [name, setName] = useState('');
+  const [key, setKey] = useState('');
+  const [customKeyEdited, setCustomKeyEdited] = useState(false);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleNameChange = (val: string) => {
+    setName(val);
+    if (!customKeyEdited) {
+      setKey(generateProjectKey(val));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +52,7 @@ export default function NewProjectPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
+          key: (key || generateProjectKey(name)).trim().toUpperCase(),
           description: description.trim(),
           userId: user?.uid || 'demo-user-1',
           userEmail: user?.email || null,
@@ -60,8 +72,10 @@ export default function NewProjectPage() {
     }
   };
 
-  const handleApplyTemplate = (tplName: string, tplDesc: string) => {
+  const handleApplyTemplate = (tplName: string, tplKey: string, tplDesc: string) => {
     setName(tplName);
+    setKey(tplKey);
+    setCustomKeyEdited(true);
     setDescription(tplDesc);
   };
 
@@ -85,7 +99,7 @@ export default function NewProjectPage() {
           </Link>
           <h1 className="text-2xl font-bold text-white tracking-tight">Create New Project</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Set up a regression testing repository for your app or microservice.
+            Set up a regression testing repository with short key initials for test cases.
           </p>
         </div>
 
@@ -97,20 +111,41 @@ export default function NewProjectPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-sm space-y-5">
-            {/* Project Name */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                Project Name <span className="text-rose-400">*</span>
-              </label>
-              <div className="relative">
-                <FolderGit2 className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+            {/* Project Name & Key 2-column grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  Project Name <span className="text-rose-400">*</span>
+                </label>
+                <div className="relative">
+                  <FolderGit2 className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    placeholder="e.g. Ecommerce Storefront & Checkout"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              {/* Project Key Initials */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>Key / Initials</span>
+                  <span className="text-[10px] text-cyan-400 font-mono">e.g. {key || 'ESC'}-1</span>
+                </label>
                 <input
                   type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Mobile Banking App, Checkout API, Admin Portal"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+                  maxLength={5}
+                  value={key}
+                  onChange={(e) => {
+                    setKey(e.target.value.toUpperCase());
+                    setCustomKeyEdited(true);
+                  }}
+                  placeholder="ESC"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-cyan-300 font-mono font-bold text-sm text-center uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                 />
               </div>
             </div>
@@ -142,13 +177,15 @@ export default function NewProjectPage() {
                 onClick={() =>
                   handleApplyTemplate(
                     'SaaS Billing & Subscriptions',
+                    'SBS',
                     'Regression suite for Stripe webhooks, tier upgrades, invoices, and payment retry logic.'
                   )
                 }
                 className="p-3 rounded-xl bg-slate-950/50 hover:bg-slate-900 border border-slate-800 text-left transition-colors group"
               >
-                <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-400">
-                  💳 SaaS Billing
+                <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-400 flex items-center justify-between">
+                  <span>💳 SaaS Billing</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-cyan-400">SBS</span>
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1 line-clamp-2">
                   Stripe, subscriptions, invoices.
@@ -160,13 +197,15 @@ export default function NewProjectPage() {
                 onClick={() =>
                   handleApplyTemplate(
                     'Customer Auth & IAM Service',
+                    'AUTH',
                     'SSO, Google OAuth, password reset, 2FA, session tokens, and RBAC permissions.'
                   )
                 }
                 className="p-3 rounded-xl bg-slate-950/50 hover:bg-slate-900 border border-slate-800 text-left transition-colors group"
               >
-                <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-400">
-                  🔐 Auth & IAM
+                <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-400 flex items-center justify-between">
+                  <span>🔐 Auth & IAM</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-cyan-400">AUTH</span>
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1 line-clamp-2">
                   OAuth, 2FA, session security.
@@ -178,13 +217,15 @@ export default function NewProjectPage() {
                 onClick={() =>
                   handleApplyTemplate(
                     'Core Mobile App (iOS / Android)',
+                    'MOB',
                     'Onboarding, deep linking, push notifications, offline cache, and native camera sync.'
                   )
                 }
                 className="p-3 rounded-xl bg-slate-950/50 hover:bg-slate-900 border border-slate-800 text-left transition-colors group"
               >
-                <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-400">
-                  📱 Mobile Suite
+                <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-400 flex items-center justify-between">
+                  <span>📱 Mobile Suite</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-cyan-400">MOB</span>
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1 line-clamp-2">
                   Native flows, push, offline sync.

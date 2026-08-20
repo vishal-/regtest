@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, XCircle, Clock, AlertTriangle, MinusCircle, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, AlertTriangle, MinusCircle, ShieldAlert, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PriorityBadgeProps {
@@ -112,6 +112,20 @@ export function ModuleTag({ module, className }: { module: string; className?: s
       )}
     >
       {module}
+    </span>
+  );
+}
+
+export function TestCaseCodeBadge({ code, className }: { code?: string | null; className?: string }) {
+  if (!code) return null;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 tracking-wide',
+        className
+      )}
+    >
+      {code}
     </span>
   );
 }

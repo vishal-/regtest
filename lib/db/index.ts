@@ -16,7 +16,7 @@ export const client = createClient({
 
 export const db = drizzle(client, { schema });
 
-// Helper to auto-create tables if they don't exist yet
+// Helper to auto-create tables and migrate missing columns
 let tablesInitialized = false;
 
 export async function ensureTablesExist() {
@@ -25,6 +25,7 @@ export async function ensureTablesExist() {
     await client.execute(`
       CREATE TABLE IF NOT EXISTS projects (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key TEXT NOT NULL DEFAULT 'PRJ',
         name TEXT NOT NULL,
         description TEXT,
         user_id TEXT NOT NULL,
@@ -47,6 +48,8 @@ export async function ensureTablesExist() {
       CREATE TABLE IF NOT EXISTS test_cases (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         project_id INTEGER NOT NULL,
+        case_number INTEGER NOT NULL DEFAULT 1,
+        code TEXT NOT NULL DEFAULT 'TC-1',
         module TEXT NOT NULL,
         priority TEXT NOT NULL,
         title TEXT NOT NULL,
@@ -78,6 +81,19 @@ export async function ensureTablesExist() {
         executed_at TEXT
       );
     `);
+
+    // Safe column migrations in case tables existed previously
+    try {
+      await client.execute(`ALTER TABLE projects ADD COLUMN key TEXT NOT NULL DEFAULT 'PRJ';`);
+    } catch (_) {}
+
+    try {
+      await client.execute(`ALTER TABLE test_cases ADD COLUMN case_number INTEGER NOT NULL DEFAULT 1;`);
+    } catch (_) {}
+
+    try {
+      await client.execute(`ALTER TABLE test_cases ADD COLUMN code TEXT NOT NULL DEFAULT 'TC-1';`);
+    } catch (_) {}
 
     tablesInitialized = true;
   } catch (err) {

@@ -2,6 +2,7 @@ import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
 export const projects = sqliteTable('projects', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  key: text('key').notNull().default('PRJ'), // e.g. 'ESC', 'AUTH', 'SB' (2-4 uppercase letters)
   name: text('name').notNull(),
   description: text('description'),
   userId: text('user_id').notNull(), // Creator / Owner user ID
@@ -20,8 +21,10 @@ export const projectMembers = sqliteTable('project_members', {
 export const testCases = sqliteTable('test_cases', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   projectId: integer('project_id').notNull(),
-  module: text('module').notNull(),         // e.g., 'Auth', 'Billing', 'Checkout'
-  priority: text('priority').notNull(),     // 'P0', 'P1', 'P2', 'P3'
+  caseNumber: integer('case_number').notNull().default(1), // Sequential per-project number: 1, 2, 3...
+  code: text('code').notNull().default('TC-1'),             // Formatted test case identifier: e.g. 'ESC-1', 'ESC-2'
+  module: text('module').notNull(),                         // e.g., 'Auth', 'Billing', 'Checkout'
+  priority: text('priority').notNull(),                     // 'P0', 'P1', 'P2', 'P3'
   title: text('title').notNull(),
   description: text('description'),
   expectedResult: text('expected_result').notNull(),

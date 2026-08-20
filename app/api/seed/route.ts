@@ -16,11 +16,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Projects already exist', projectId: existing[0].id });
     }
 
-    // Create E-Commerce Web Demo Project
+    // Create E-Commerce Web Demo Project (Key: ESC)
     const insertedProjects = await db
       .insert(projects)
       .values({
-        name: 'E-Commerce Storefront & Checkout',
+        name: 'Ecommerce Storefront & Checkout',
+        key: 'ESC',
         description: 'Core web application handling customer auth, product catalog, cart, and Stripe billing.',
         userId,
         createdAt: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString(),
@@ -38,10 +39,12 @@ export async function POST(request: NextRequest) {
       addedAt: new Date().toISOString(),
     });
 
-    // Sample Test Cases
+    // Sample Test Cases with ESC-1, ESC-2...
     const sampleCases = [
       {
         projectId: newProject.id,
+        caseNumber: 1,
+        code: 'ESC-1',
         module: 'Auth',
         priority: 'P0',
         title: 'User logs in successfully with valid Google OAuth',
@@ -51,6 +54,8 @@ export async function POST(request: NextRequest) {
       },
       {
         projectId: newProject.id,
+        caseNumber: 2,
+        code: 'ESC-2',
         module: 'Auth',
         priority: 'P1',
         title: 'Invalid password shows friendly error message',
@@ -60,6 +65,8 @@ export async function POST(request: NextRequest) {
       },
       {
         projectId: newProject.id,
+        caseNumber: 3,
+        code: 'ESC-3',
         module: 'Billing',
         priority: 'P0',
         title: 'Complete credit card checkout with 3D Secure verification',
@@ -69,6 +76,8 @@ export async function POST(request: NextRequest) {
       },
       {
         projectId: newProject.id,
+        caseNumber: 4,
+        code: 'ESC-4',
         module: 'Checkout',
         priority: 'P0',
         title: 'Apply 20% promo discount code at checkout',
@@ -78,6 +87,8 @@ export async function POST(request: NextRequest) {
       },
       {
         projectId: newProject.id,
+        caseNumber: 5,
+        code: 'ESC-5',
         module: 'Billing',
         priority: 'P2',
         title: 'Download PDF invoice from order history',
@@ -87,6 +98,8 @@ export async function POST(request: NextRequest) {
       },
       {
         projectId: newProject.id,
+        caseNumber: 6,
+        code: 'ESC-6',
         module: 'Cart',
         priority: 'P1',
         title: 'Cart persistence across browser tab refresh',

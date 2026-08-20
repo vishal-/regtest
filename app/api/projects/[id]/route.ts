@@ -88,11 +88,16 @@ export async function GET(
       })
     );
 
+    const enhancedCases = cases.map((tc) => ({
+      ...tc,
+      code: tc.code || `${project.key || 'TC'}-${tc.caseNumber || tc.id}`,
+    }));
+
     return NextResponse.json({
       project,
       isOwner,
       members,
-      testCases: cases,
+      testCases: enhancedCases,
       testRuns: runsWithStats,
     });
   } catch (error) {

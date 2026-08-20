@@ -16,11 +16,12 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Header } from '@/components/layout/header';
-import { PriorityBadge, ModuleTag } from '@/components/ui/badges';
+import { PriorityBadge, ModuleTag, TestCaseCodeBadge } from '@/components/ui/badges';
 
 interface TestCase {
   id: number;
   projectId: number;
+  code?: string;
   module: string;
   priority: string;
   title: string;
@@ -262,6 +263,7 @@ export default function NewRunPage({
 
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
+                            <TestCaseCodeBadge code={tc.code || `TC-${tc.id}`} />
                             <PriorityBadge priority={tc.priority} />
                             <ModuleTag module={tc.module} />
                             <span className="font-semibold text-xs text-slate-200 truncate">

@@ -22,11 +22,12 @@ import {
   Keyboard,
   CheckCheck,
 } from 'lucide-react';
-import { StatusBadge, PriorityBadge, ModuleTag } from '@/components/ui/badges';
+import { StatusBadge, PriorityBadge, ModuleTag, TestCaseCodeBadge } from '@/components/ui/badges';
 import confetti from 'canvas-confetti';
 
 interface TestCaseInfo {
   id: number;
+  code?: string;
   title: string;
   module: string;
   priority: string;
@@ -411,7 +412,8 @@ export default function RunExecutionPage({
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <TestCaseCodeBadge code={r.testCase.code || `TC-${r.testCase.id}`} />
                       <PriorityBadge priority={r.testCase.priority} size="sm" />
                       <ModuleTag module={r.testCase.module} />
                     </div>
@@ -454,7 +456,11 @@ export default function RunExecutionPage({
             <div className="space-y-6">
               {/* Test Header */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <TestCaseCodeBadge
+                    code={currentResult.testCase.code || `TC-${currentResult.testCase.id}`}
+                    className="text-xs px-2.5 py-1"
+                  />
                   <span className="text-xs font-mono text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20">
                     Test #{activeIndex + 1} of {results.length}
                   </span>

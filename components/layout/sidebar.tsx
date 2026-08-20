@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 
 interface ProjectOption {
   id: number;
+  key?: string;
   name: string;
   isOwner?: boolean;
 }
@@ -41,8 +42,9 @@ export function Sidebar() {
       .then((data) => {
         if (data.projects) {
           setProjectsList(
-            data.projects.map((p: { id: number; name: string; isOwner?: boolean }) => ({
+            data.projects.map((p: { id: number; key?: string; name: string; isOwner?: boolean }) => ({
               id: p.id,
+              key: p.key,
               name: p.name,
               isOwner: p.isOwner,
             }))
@@ -147,11 +149,15 @@ export function Sidebar() {
                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
                     )}
                   >
-                    <div className="flex items-center gap-2.5 truncate">
+                    <div className="flex items-center gap-2 truncate">
                       <FolderGit2 className="w-3.5 h-3.5 shrink-0 text-slate-500 group-hover:text-cyan-400" />
                       <span className="truncate">{p.name}</span>
                     </div>
-                    <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 text-slate-500 transition-opacity" />
+                    {p.key && (
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-800 text-cyan-400/90 shrink-0">
+                        {p.key}
+                      </span>
+                    )}
                   </Link>
                 );
               })

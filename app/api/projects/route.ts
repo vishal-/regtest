@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureTablesExist } from '@/lib/db';
 import { projects, projectMembers, testCases, testRuns } from '@/lib/db/schema';
-import { eq, desc, or, inArray } from 'drizzle-orm';
+import { generateProjectKey } from '@/lib/utils';
+import { eq, desc } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
 
         return {
           ...project,
+          key: project.key || generateProjectKey(project.name),
           isOwner,
           testCaseCount: cases.length,
           runCount: runs.length,
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
   try {
     await ensureTablesExist();
     const body = await request.json();
-    const { name, description, userId, userEmail } = body;
+    const { name, description, key, userId, userEmail } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
@@ -78,11 +80,13 @@ export async function POST(request: NextRequest) {
 
     const creatorId = userId || 'demo-user-1';
     const now = new Date().toISOString();
+    const projectKey = generateProjectKey(name, key);
 
     const insertResult = await db
       .insert(projects)
       .values({
         name,
+        key: projectKey,
         description: description || '',
         userId: creatorId,
         createdAt: now,

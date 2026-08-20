@@ -28,6 +28,7 @@ import { useAuth } from '@/lib/firebase/auth-context';
 
 interface ProjectItem {
   id: number;
+  key?: string;
   name: string;
   description: string;
   userId: string;
@@ -293,16 +294,23 @@ export default function DashboardPage() {
                 >
                   <div>
                     <div className="flex items-start justify-between gap-3 mb-2">
-                      <Link
-                        href={`/projects/${p.id}`}
-                        className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors flex items-center gap-1.5"
-                      >
-                        <span>{p.name}</span>
-                        <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-cyan-400" />
-                      </Link>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link
+                          href={`/projects/${p.id}`}
+                          className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors flex items-center gap-1.5"
+                        >
+                          <span>{p.name}</span>
+                          <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-cyan-400" />
+                        </Link>
+                        {p.key && (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                            {p.key}
+                          </span>
+                        )}
+                      </div>
 
                       <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
                           p.isOwner
                             ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20'
                             : 'bg-slate-800 text-slate-400 border-slate-700'

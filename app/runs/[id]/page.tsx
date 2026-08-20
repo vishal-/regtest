@@ -28,11 +28,12 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Header } from '@/components/layout/header';
-import { StatusBadge, PriorityBadge, ModuleTag } from '@/components/ui/badges';
+import { StatusBadge, PriorityBadge, ModuleTag, TestCaseCodeBadge } from '@/components/ui/badges';
 import { formatDate } from '@/lib/utils';
 
 interface TestCaseInfo {
   id: number;
+  code?: string;
   title: string;
   module: string;
   priority: string;
@@ -181,8 +182,8 @@ export default function RunOverviewPage({
   });
 
   const moduleBreakdownList: ModuleBreakdown[] = Array.from(moduleMap.values()).map((m) => {
-    const completed = m.passed + m.failed;
-    const passRate = completed > 0 ? Math.round((m.passed / completed) * 100) : m.passed > 0 ? 100 : 0;
+    const completed = m.passed + m.failed + m.skipped;
+    const passRate = m.total > 0 ? Math.round((m.passed / m.total) * 100) : 0;
     return {
       ...m,
       completed,
@@ -631,6 +632,7 @@ export default function RunOverviewPage({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
                 <tr>
+                  <th className="px-4 py-3 w-24">ID</th>
                   <th className="px-4 py-3 w-16">Priority</th>
                   <th className="px-4 py-3 w-28">Module</th>
                   <th className="px-4 py-3">Test Case</th>
@@ -648,6 +650,9 @@ export default function RunOverviewPage({
                         onClick={() => setExpandedResultId(isExpanded ? null : r.id)}
                         className="hover:bg-slate-800/30 transition-colors cursor-pointer"
                       >
+                        <td className="px-4 py-3.5 align-top">
+                          <TestCaseCodeBadge code={r.testCase.code || `TC-${r.testCase.id}`} />
+                        </td>
                         <td className="px-4 py-3.5 align-top">
                           <PriorityBadge priority={r.testCase.priority} />
                         </td>

@@ -28,13 +28,15 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Header } from '@/components/layout/header';
-import { PriorityBadge, StatusBadge, ModuleTag } from '@/components/ui/badges';
+import { PriorityBadge, StatusBadge, ModuleTag, TestCaseCodeBadge } from '@/components/ui/badges';
 import { formatDate } from '@/lib/utils';
 import { useAuth } from '@/lib/firebase/auth-context';
 
 interface TestCase {
   id: number;
   projectId: number;
+  caseNumber?: number;
+  code?: string;
   module: string;
   priority: string;
   title: string;
@@ -69,6 +71,7 @@ interface MemberItem {
 interface ProjectData {
   project: {
     id: number;
+    key?: string;
     name: string;
     description: string;
     userId: string;
@@ -249,6 +252,9 @@ export default function ProjectDetailPage({
                 <h1 className="text-2xl font-extrabold text-white tracking-tight">
                   {project.name}
                 </h1>
+                <span className="text-xs px-2.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-mono font-bold border border-cyan-500/30">
+                  {project.key || 'PRJ'}
+                </span>
                 <span
                   className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold border flex items-center gap-1 ${
                     isOwner
@@ -339,7 +345,7 @@ export default function ProjectDetailPage({
                   <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
                   <input
                     type="text"
-                    placeholder="Search test case title or steps..."
+                    placeholder="Search test case ID, title or steps..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-950/70 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -404,6 +410,7 @@ export default function ProjectDetailPage({
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
                     <tr>
+                      <th className="px-4 py-3 w-24">ID</th>
                       <th className="px-4 py-3 w-16">Priority</th>
                       <th className="px-4 py-3 w-28">Module</th>
                       <th className="px-4 py-3">Test Case Title & Expected Result</th>
@@ -414,6 +421,9 @@ export default function ProjectDetailPage({
                   <tbody className="divide-y divide-slate-800/60">
                     {filteredTestCases.map((tc) => (
                       <tr key={tc.id} className="hover:bg-slate-800/30 transition-colors group">
+                        <td className="px-4 py-3.5 align-top">
+                          <TestCaseCodeBadge code={tc.code || `${project.key || 'TC'}-${tc.id}`} />
+                        </td>
                         <td className="px-4 py-3.5 align-top">
                           <PriorityBadge priority={tc.priority} />
                         </td>
