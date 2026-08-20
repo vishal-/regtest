@@ -9,12 +9,13 @@ export async function GET(
 ) {
   try {
     await ensureTablesExist();
-    const { id: projectId, testId } = await params;
+    const { testId } = await params;
+    const numericTestId = Number(testId);
 
     const caseList = await db
       .select()
       .from(testCases)
-      .where(eq(testCases.id, testId))
+      .where(eq(testCases.id, numericTestId))
       .limit(1);
 
     if (!caseList || caseList.length === 0) {
@@ -37,7 +38,7 @@ export async function GET(
       })
       .from(testResults)
       .innerJoin(testRuns, eq(testResults.testRunId, testRuns.id))
-      .where(eq(testResults.testCaseId, testId))
+      .where(eq(testResults.testCaseId, numericTestId))
       .orderBy(desc(testRuns.executedAt));
 
     return NextResponse.json({
@@ -57,6 +58,7 @@ export async function PATCH(
   try {
     await ensureTablesExist();
     const { testId } = await params;
+    const numericTestId = Number(testId);
     const body = await request.json();
     const { title, module, priority, description, expectedResult } = body;
 
@@ -69,7 +71,7 @@ export async function PATCH(
         ...(description !== undefined ? { description } : {}),
         ...(expectedResult ? { expectedResult } : {}),
       })
-      .where(eq(testCases.id, testId));
+      .where(eq(testCases.id, numericTestId));
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -85,9 +87,10 @@ export async function DELETE(
   try {
     await ensureTablesExist();
     const { testId } = await params;
+    const numericTestId = Number(testId);
 
-    await db.delete(testResults).where(eq(testResults.testCaseId, testId));
-    await db.delete(testCases).where(eq(testCases.id, testId));
+    await db.delete(testResults).where(eq(testResults.testCaseId, numericTestId));
+    await db.delete(testCases).where(eq(testCases.id, numericTestId));
 
     return NextResponse.json({ success: true });
   } catch (error) {

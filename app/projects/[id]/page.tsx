@@ -20,15 +20,21 @@ import {
   Trash2,
   Edit,
   ExternalLink,
+  Users,
+  UserPlus,
+  ShieldCheck,
+  Crown,
+  Lock,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Header } from '@/components/layout/header';
 import { PriorityBadge, StatusBadge, ModuleTag } from '@/components/ui/badges';
 import { formatDate } from '@/lib/utils';
+import { useAuth } from '@/lib/firebase/auth-context';
 
 interface TestCase {
-  id: string;
-  projectId: string;
+  id: number;
+  projectId: number;
   module: string;
   priority: string;
   title: string;
@@ -38,8 +44,8 @@ interface TestCase {
 }
 
 interface TestRun {
-  id: string;
-  projectId: string;
+  id: number;
+  projectId: number;
   name: string;
   status: string;
   executedAt: string;
@@ -51,13 +57,25 @@ interface TestRun {
   pending: number;
 }
 
+interface MemberItem {
+  id: number;
+  projectId: number;
+  userId: string;
+  userEmail?: string | null;
+  role: string;
+  addedAt: string;
+}
+
 interface ProjectData {
   project: {
-    id: string;
+    id: number;
     name: string;
     description: string;
+    userId: string;
     createdAt: string;
   };
+  isOwner: boolean;
+  members: MemberItem[];
   testCases: TestCase[];
   testRuns: TestRun[];
 }
@@ -70,21 +88,37 @@ export default function ProjectDetailPage({
   const resolvedParams = use(params);
   const projectId = resolvedParams.id;
   const router = useRouter();
+  const { user } = useAuth();
 
   const [data, setData] = useState<ProjectData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'test-cases' | 'runs'>('test-cases');
+  const [activeTab, setActiveTab] = useState<'test-cases' | 'runs' | 'members'>('test-cases');
 
   // Filters for test cases
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModule, setSelectedModule] = useState<string>('ALL');
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
 
+  // Add Member Form
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState('MEMBER');
+  const [addingMember, setAddingMember] = useState(false);
+  const [memberError, setMemberError] = useState('');
+
   const fetchProject = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/projects/${projectId}`);
+      const query = new URLSearchParams();
+      if (user?.uid) query.set('userId', user.uid);
+      if (user?.email) query.set('userEmail', user.email);
+
+      const res = await fetch(`/api/projects/${projectId}?${query.toString()}`);
       if (!res.ok) {
+        if (res.status === 403) {
+          alert('Access denied: You are not a member of this project.');
+          router.push('/dashboard');
+          return;
+        }
         throw new Error('Project not found');
       }
       const json = await res.json();
@@ -97,8 +131,57 @@ export default function ProjectDetailPage({
   };
 
   useEffect(() => {
-    fetchProject();
-  }, [projectId]);
+    if (user) {
+      fetchProject();
+    }
+  }, [projectId, user]);
+
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMemberEmail.trim()) {
+      setMemberError('Please enter user email');
+      return;
+    }
+    setAddingMember(true);
+    setMemberError('');
+    try {
+      const res = await fetch(`/api/projects/${projectId}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          callerUserId: user?.uid,
+          userEmail: newMemberEmail.trim(),
+          role: newMemberRole,
+        }),
+      });
+
+      const resJson = await res.json();
+      if (!res.ok) {
+        throw new Error(resJson.error || 'Failed to add member');
+      }
+
+      setNewMemberEmail('');
+      await fetchProject();
+    } catch (err: unknown) {
+      setMemberError(err instanceof Error ? err.message : 'Error adding member');
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: number) => {
+    if (!confirm('Are you sure you want to remove this member from the project?')) return;
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/members?memberId=${memberId}&callerUserId=${user?.uid}`,
+        { method: 'DELETE' }
+      );
+      if (!res.ok) throw new Error('Failed to remove member');
+      await fetchProject();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   if (loading || !data) {
     return (
@@ -111,7 +194,7 @@ export default function ProjectDetailPage({
     );
   }
 
-  const { project, testCases, testRuns } = data;
+  const { project, isOwner, members, testCases, testRuns } = data;
 
   // Extract unique modules
   const uniqueModules = Array.from(new Set(testCases.map((tc) => tc.module))).filter(Boolean);
@@ -162,10 +245,20 @@ export default function ProjectDetailPage({
         <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-slate-900/40 border border-slate-800 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-extrabold text-white tracking-tight">
                   {project.name}
                 </h1>
+                <span
+                  className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold border flex items-center gap-1 ${
+                    isOwner
+                      ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+                      : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
+                  }`}
+                >
+                  {isOwner ? <Crown className="w-3 h-3 text-cyan-400" /> : <Users className="w-3 h-3 text-indigo-400" />}
+                  {isOwner ? 'Project Creator / Owner' : 'Team Member'}
+                </span>
                 <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">
                   {testCases.length} tests
                 </span>
@@ -188,6 +281,10 @@ export default function ProjectDetailPage({
               <div className="px-3 py-2 rounded-xl bg-slate-950/60 border border-slate-800/80 text-center">
                 <div className="text-xs text-cyan-400 font-bold font-mono">{testRuns.length}</div>
                 <div className="text-[10px] text-slate-500 uppercase tracking-wider">Total Runs</div>
+              </div>
+              <div className="px-3 py-2 rounded-xl bg-slate-950/60 border border-slate-800/80 text-center">
+                <div className="text-xs text-violet-400 font-bold font-mono">{members.length}</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Members</div>
               </div>
             </div>
           </div>
@@ -217,6 +314,18 @@ export default function ProjectDetailPage({
           >
             <FlaskConical className="w-4 h-4" />
             <span>Regression Runs ({testRuns.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('members')}
+            className={`pb-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+              activeTab === 'members'
+                ? 'border-cyan-400 text-cyan-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Team & Access ({members.length})</span>
           </button>
         </div>
 
@@ -447,6 +556,143 @@ export default function ProjectDetailPage({
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 3: TEAM & ACCESS (MEMBERS) */}
+        {activeTab === 'members' && (
+          <div className="space-y-6">
+            {/* Owner Section: Add Member */}
+            {isOwner ? (
+              <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <UserPlus className="w-4 h-4 text-cyan-400" />
+                      <span>Invite User to Project</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Only you (the project creator) can grant other users access to this regression repository.
+                    </p>
+                  </div>
+                </div>
+
+                {memberError && (
+                  <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+                    {memberError}
+                  </div>
+                )}
+
+                <form onSubmit={handleAddMember} className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <input
+                      type="email"
+                      required
+                      value={newMemberEmail}
+                      onChange={(e) => setNewMemberEmail(e.target.value)}
+                      placeholder="Enter user email (e.g. sdet@company.com)"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    />
+                  </div>
+
+                  <select
+                    value={newMemberRole}
+                    onChange={(e) => setNewMemberRole(e.target.value)}
+                    className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500 font-mono"
+                  >
+                    <option value="MEMBER">Role: Member (Tester)</option>
+                    <option value="ADMIN">Role: Admin</option>
+                  </select>
+
+                  <button
+                    type="submit"
+                    disabled={addingMember}
+                    className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>{addingMember ? 'Adding...' : 'Add Member'}</span>
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-3 text-indigo-300 text-xs">
+                <Lock className="w-4 h-4 shrink-0 text-indigo-400" />
+                <span>
+                  You are participating as a <strong>Team Member</strong>. Only the project creator has permission to invite or remove members.
+                </span>
+              </div>
+            )}
+
+            {/* Members Table */}
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-sm space-y-2">
+              <div className="px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+                <span className="text-xs font-bold text-white uppercase tracking-wider">
+                  Current Project Members ({members.length})
+                </span>
+              </div>
+
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
+                  <tr>
+                    <th className="px-5 py-3">User Email / ID</th>
+                    <th className="px-4 py-3">Role</th>
+                    <th className="px-4 py-3">Joined Date</th>
+                    {isOwner && <th className="px-5 py-3 text-right">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {members.map((m) => (
+                    <tr key={m.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center text-white font-bold text-[11px]">
+                            {m.userEmail ? m.userEmail.charAt(0).toUpperCase() : 'U'}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-slate-200">
+                              {m.userEmail || m.userId}
+                            </span>
+                            {m.userId === project.userId && (
+                              <span className="ml-2 text-[10px] text-cyan-400 font-mono">
+                                (Creator)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-semibold ${
+                            m.role === 'OWNER'
+                              ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
+                              : 'bg-slate-800 text-slate-300 border border-slate-700'
+                          }`}
+                        >
+                          {m.role === 'OWNER' && <Crown className="w-3 h-3 text-cyan-400" />}
+                          {m.role}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-slate-400 font-mono text-[11px]">
+                        {formatDate(m.addedAt)}
+                      </td>
+                      {isOwner && (
+                        <td className="px-5 py-3.5 text-right">
+                          {m.role !== 'OWNER' && m.userId !== project.userId && (
+                            <button
+                              onClick={() => handleRemoveMember(m.id)}
+                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors"
+                              title="Remove Member"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

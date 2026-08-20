@@ -22,8 +22,8 @@ import { PriorityBadge, StatusBadge, ModuleTag } from '@/components/ui/badges';
 import { formatDate } from '@/lib/utils';
 
 interface TestCaseDetail {
-  id: string;
-  projectId: string;
+  id: number;
+  projectId: number;
   module: string;
   priority: string;
   title: string;
@@ -33,12 +33,12 @@ interface TestCaseDetail {
 }
 
 interface RunHistoryItem {
-  resultId: string;
+  resultId: number;
   status: string;
   actualResult?: string | null;
   notes?: string | null;
   executedAt?: string | null;
-  runId: string;
+  runId: number;
   runName: string;
   runExecutedAt: string;
 }

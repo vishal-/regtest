@@ -10,11 +10,12 @@ export async function GET(
   try {
     await ensureTablesExist();
     const { id } = await params;
+    const numericRunId = Number(id);
 
     const runList = await db
       .select()
       .from(testRuns)
-      .where(eq(testRuns.id, id))
+      .where(eq(testRuns.id, numericRunId))
       .limit(1);
 
     if (!runList || runList.length === 0) {
@@ -49,7 +50,7 @@ export async function GET(
       })
       .from(testResults)
       .innerJoin(testCases, eq(testResults.testCaseId, testCases.id))
-      .where(eq(testResults.testRunId, id));
+      .where(eq(testResults.testRunId, numericRunId));
 
     const total = results.length;
     const passed = results.filter((r) => r.status === 'PASSED').length;
@@ -84,6 +85,7 @@ export async function PATCH(
   try {
     await ensureTablesExist();
     const { id } = await params;
+    const numericRunId = Number(id);
     const body = await request.json();
     const { status, name, completedAt } = body;
 
@@ -94,7 +96,7 @@ export async function PATCH(
         ...(name ? { name } : {}),
         ...(completedAt !== undefined ? { completedAt } : {}),
       })
-      .where(eq(testRuns.id, id));
+      .where(eq(testRuns.id, numericRunId));
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -110,9 +112,10 @@ export async function DELETE(
   try {
     await ensureTablesExist();
     const { id } = await params;
+    const numericRunId = Number(id);
 
-    await db.delete(testResults).where(eq(testResults.testRunId, id));
-    await db.delete(testRuns).where(eq(testRuns.id, id));
+    await db.delete(testResults).where(eq(testResults.testRunId, numericRunId));
+    await db.delete(testRuns).where(eq(testRuns.id, numericRunId));
 
     return NextResponse.json({ success: true });
   } catch (error) {

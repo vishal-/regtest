@@ -1,16 +1,25 @@
-import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
 export const projects = sqliteTable('projects', {
-  id: text('id').primaryKey(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   description: text('description'),
-  userId: text('user_id').notNull(),
+  userId: text('user_id').notNull(), // Creator / Owner user ID
   createdAt: text('created_at').notNull(),
 });
 
+export const projectMembers = sqliteTable('project_members', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  projectId: integer('project_id').notNull(),
+  userId: text('user_id').notNull(),
+  userEmail: text('user_email'),
+  role: text('role').notNull().default('MEMBER'), // 'OWNER' | 'MEMBER' | 'ADMIN'
+  addedAt: text('added_at').notNull(),
+});
+
 export const testCases = sqliteTable('test_cases', {
-  id: text('id').primaryKey(),
-  projectId: text('project_id').notNull(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  projectId: integer('project_id').notNull(),
   module: text('module').notNull(),         // e.g., 'Auth', 'Billing', 'Checkout'
   priority: text('priority').notNull(),     // 'P0', 'P1', 'P2', 'P3'
   title: text('title').notNull(),
@@ -20,8 +29,8 @@ export const testCases = sqliteTable('test_cases', {
 });
 
 export const testRuns = sqliteTable('test_runs', {
-  id: text('id').primaryKey(),
-  projectId: text('project_id').notNull(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  projectId: integer('project_id').notNull(),
   name: text('name'),
   status: text('status').notNull(),         // 'PASSED', 'FAILED', 'IN_PROGRESS'
   executedAt: text('executed_at').notNull(),
@@ -30,9 +39,9 @@ export const testRuns = sqliteTable('test_runs', {
 
 // Granular results for each test case in a given run
 export const testResults = sqliteTable('test_results', {
-  id: text('id').primaryKey(),
-  testRunId: text('test_run_id').notNull(),
-  testCaseId: text('test_case_id').notNull(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  testRunId: integer('test_run_id').notNull(),
+  testCaseId: integer('test_case_id').notNull(),
   status: text('status').notNull(),         // 'PASSED', 'FAILED', 'SKIPPED', 'PENDING'
   actualResult: text('actual_result'),
   notes: text('notes'),
@@ -41,6 +50,9 @@ export const testResults = sqliteTable('test_results', {
 
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
+
+export type ProjectMember = typeof projectMembers.$inferSelect;
+export type NewProjectMember = typeof projectMembers.$inferInsert;
 
 export type TestCase = typeof testCases.$inferSelect;
 export type NewTestCase = typeof testCases.$inferInsert;

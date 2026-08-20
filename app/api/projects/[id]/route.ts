@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureTablesExist } from '@/lib/db';
-import { projects, testCases, testRuns, testResults } from '@/lib/db/schema';
+import { projects, projectMembers, testCases, testRuns, testResults } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(
@@ -10,11 +10,20 @@ export async function GET(
   try {
     await ensureTablesExist();
     const { id } = await params;
+    const numericProjectId = Number(id);
+
+    if (isNaN(numericProjectId)) {
+      return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const callerUserId = searchParams.get('userId');
+    const callerUserEmail = searchParams.get('userEmail');
 
     const projectList = await db
       .select()
       .from(projects)
-      .where(eq(projects.id, id))
+      .where(eq(projects.id, numericProjectId))
       .limit(1);
 
     if (!projectList || projectList.length === 0) {
@@ -23,19 +32,39 @@ export async function GET(
 
     const project = projectList[0];
 
+    // Fetch members
+    const members = await db
+      .select()
+      .from(projectMembers)
+      .where(eq(projectMembers.projectId, numericProjectId));
+
+    // Access check if userId/email provided
+    const isOwner = callerUserId ? project.userId === callerUserId : true;
+    const isMember = members.some(
+      (m) =>
+        (callerUserId && m.userId === callerUserId) ||
+        (callerUserEmail && m.userEmail === callerUserEmail)
+    );
+
+    if (callerUserId && !isOwner && !isMember) {
+      return NextResponse.json(
+        { error: 'Access denied. You are not a member of this project.' },
+        { status: 403 }
+      );
+    }
+
     const cases = await db
       .select()
       .from(testCases)
-      .where(eq(testCases.projectId, id))
+      .where(eq(testCases.projectId, numericProjectId))
       .orderBy(desc(testCases.createdAt));
 
     const runs = await db
       .select()
       .from(testRuns)
-      .where(eq(testRuns.projectId, id))
+      .where(eq(testRuns.projectId, numericProjectId))
       .orderBy(desc(testRuns.executedAt));
 
-    // Get stats for each run
     const runsWithStats = await Promise.all(
       runs.map(async (run) => {
         const results = await db
@@ -61,6 +90,8 @@ export async function GET(
 
     return NextResponse.json({
       project,
+      isOwner,
+      members,
       testCases: cases,
       testRuns: runsWithStats,
     });
@@ -77,8 +108,26 @@ export async function PATCH(
   try {
     await ensureTablesExist();
     const { id } = await params;
+    const numericProjectId = Number(id);
     const body = await request.json();
-    const { name, description } = body;
+    const { name, description, userId } = body;
+
+    const projectList = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, numericProjectId))
+      .limit(1);
+
+    if (!projectList.length) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    if (userId && projectList[0].userId !== userId) {
+      return NextResponse.json(
+        { error: 'Only the project creator can edit project settings' },
+        { status: 403 }
+      );
+    }
 
     await db
       .update(projects)
@@ -86,7 +135,7 @@ export async function PATCH(
         ...(name ? { name } : {}),
         ...(description !== undefined ? { description } : {}),
       })
-      .where(eq(projects.id, id));
+      .where(eq(projects.id, numericProjectId));
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -102,11 +151,36 @@ export async function DELETE(
   try {
     await ensureTablesExist();
     const { id } = await params;
+    const numericProjectId = Number(id);
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
 
-    // Delete associated test cases & runs
-    await db.delete(testCases).where(eq(testCases.projectId, id));
-    await db.delete(testRuns).where(eq(testRuns.projectId, id));
-    await db.delete(projects).where(eq(projects.id, id));
+    const projectList = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, numericProjectId))
+      .limit(1);
+
+    if (!projectList.length) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    if (userId && projectList[0].userId !== userId) {
+      return NextResponse.json(
+        { error: 'Only the project creator can delete this project' },
+        { status: 403 }
+      );
+    }
+
+    // Delete associated test cases, runs, and members
+    const runs = await db.select({ id: testRuns.id }).from(testRuns).where(eq(testRuns.projectId, numericProjectId));
+    for (const r of runs) {
+      await db.delete(testResults).where(eq(testResults.testRunId, r.id));
+    }
+    await db.delete(testRuns).where(eq(testRuns.projectId, numericProjectId));
+    await db.delete(testCases).where(eq(testCases.projectId, numericProjectId));
+    await db.delete(projectMembers).where(eq(projectMembers.projectId, numericProjectId));
+    await db.delete(projects).where(eq(projects.id, numericProjectId));
 
     return NextResponse.json({ success: true });
   } catch (error) {

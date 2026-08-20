@@ -24,7 +24,7 @@ import { StatusBadge, PriorityBadge, ModuleTag } from '@/components/ui/badges';
 import { formatDate } from '@/lib/utils';
 
 interface TestCaseInfo {
-  id: string;
+  id: number;
   title: string;
   module: string;
   priority: string;
@@ -33,9 +33,9 @@ interface TestCaseInfo {
 }
 
 interface TestResultItem {
-  id: string;
-  testRunId: string;
-  testCaseId: string;
+  id: number;
+  testRunId: number;
+  testCaseId: number;
   status: string;
   actualResult?: string | null;
   notes?: string | null;
@@ -45,15 +45,15 @@ interface TestResultItem {
 
 interface RunData {
   run: {
-    id: string;
-    projectId: string;
+    id: number;
+    projectId: number;
     name: string;
     status: string;
     executedAt: string;
     completedAt?: string | null;
   };
   project?: {
-    id: string;
+    id: number;
     name: string;
   } | null;
   results: TestResultItem[];
@@ -81,7 +81,7 @@ export default function RunOverviewPage({
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
+  const [expandedResultId, setExpandedResultId] = useState<number | null>(null);
 
   const fetchRun = async () => {
     try {

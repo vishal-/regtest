@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureTablesExist } from '@/lib/db';
 import { testRuns, testResults, testCases } from '@/lib/db/schema';
-import { generateId } from '@/lib/utils';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(
@@ -10,12 +9,13 @@ export async function GET(
 ) {
   try {
     await ensureTablesExist();
-    const { id: projectId } = await params;
+    const { id } = await params;
+    const numericProjectId = Number(id);
 
     const runs = await db
       .select()
       .from(testRuns)
-      .where(eq(testRuns.projectId, projectId))
+      .where(eq(testRuns.projectId, numericProjectId))
       .orderBy(desc(testRuns.executedAt));
 
     const runsWithStats = await Promise.all(
@@ -49,17 +49,18 @@ export async function POST(
 ) {
   try {
     await ensureTablesExist();
-    const { id: projectId } = await params;
+    const { id } = await params;
+    const numericProjectId = Number(id);
     const body = await request.json();
     const { name, testCaseIds } = body;
 
     // Fetch all test cases if specific ones were not passed
-    let targetCaseIds: string[] = testCaseIds;
-    if (!targetCaseIds || targetCaseIds.length === 0) {
+    let targetCaseIds: number[] = (testCaseIds || []).map((cid: string | number) => Number(cid));
+    if (targetCaseIds.length === 0) {
       const allCases = await db
         .select({ id: testCases.id })
         .from(testCases)
-        .where(eq(testCases.projectId, projectId));
+        .where(eq(testCases.projectId, numericProjectId));
       targetCaseIds = allCases.map((c) => c.id);
     }
 
@@ -70,34 +71,32 @@ export async function POST(
       );
     }
 
-    const runId = generateId('run');
-    const newRun = {
-      id: runId,
-      projectId,
-      name: name || `Regression Run #${new Date().toLocaleDateString()}`,
-      status: 'IN_PROGRESS',
-      executedAt: new Date().toISOString(),
-      completedAt: null,
-    };
+    const insertedRuns = await db
+      .insert(testRuns)
+      .values({
+        projectId: numericProjectId,
+        name: name || `Regression Run #${new Date().toLocaleDateString()}`,
+        status: 'IN_PROGRESS',
+        executedAt: new Date().toISOString(),
+        completedAt: null,
+      })
+      .returning();
 
-    await db.insert(testRuns).values(newRun);
+    const newRun = insertedRuns[0];
 
     // Create pending test results for each test case
-    const initialResults = targetCaseIds.map((caseId) => ({
-      id: generateId('res'),
-      testRunId: runId,
-      testCaseId: caseId,
-      status: 'PENDING',
-      actualResult: null,
-      notes: null,
-      executedAt: null,
-    }));
-
-    for (const result of initialResults) {
-      await db.insert(testResults).values(result);
+    for (const caseId of targetCaseIds) {
+      await db.insert(testResults).values({
+        testRunId: newRun.id,
+        testCaseId: caseId,
+        status: 'PENDING',
+        actualResult: null,
+        notes: null,
+        executedAt: null,
+      });
     }
 
-    return NextResponse.json({ testRun: newRun, runId }, { status: 201 });
+    return NextResponse.json({ testRun: newRun, runId: newRun.id }, { status: 201 });
   } catch (error) {
     console.error('Failed to create test run:', error);
     return NextResponse.json({ error: 'Failed to create test run' }, { status: 500 });

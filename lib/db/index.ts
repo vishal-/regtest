@@ -16,7 +16,7 @@ export const client = createClient({
 
 export const db = drizzle(client, { schema });
 
-// Helper to auto-create tables if they don't exist yet (especially in local dev mode)
+// Helper to auto-create tables if they don't exist yet
 let tablesInitialized = false;
 
 export async function ensureTablesExist() {
@@ -24,7 +24,7 @@ export async function ensureTablesExist() {
   try {
     await client.execute(`
       CREATE TABLE IF NOT EXISTS projects (
-        id TEXT PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         description TEXT,
         user_id TEXT NOT NULL,
@@ -33,9 +33,20 @@ export async function ensureTablesExist() {
     `);
 
     await client.execute(`
+      CREATE TABLE IF NOT EXISTS project_members (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        user_id TEXT NOT NULL,
+        user_email TEXT,
+        role TEXT NOT NULL DEFAULT 'MEMBER',
+        added_at TEXT NOT NULL
+      );
+    `);
+
+    await client.execute(`
       CREATE TABLE IF NOT EXISTS test_cases (
-        id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
         module TEXT NOT NULL,
         priority TEXT NOT NULL,
         title TEXT NOT NULL,
@@ -47,8 +58,8 @@ export async function ensureTablesExist() {
 
     await client.execute(`
       CREATE TABLE IF NOT EXISTS test_runs (
-        id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
         name TEXT,
         status TEXT NOT NULL,
         executed_at TEXT NOT NULL,
@@ -58,9 +69,9 @@ export async function ensureTablesExist() {
 
     await client.execute(`
       CREATE TABLE IF NOT EXISTS test_results (
-        id TEXT PRIMARY KEY,
-        test_run_id TEXT NOT NULL,
-        test_case_id TEXT NOT NULL,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        test_run_id INTEGER NOT NULL,
+        test_case_id INTEGER NOT NULL,
         status TEXT NOT NULL,
         actual_result TEXT,
         notes TEXT,

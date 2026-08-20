@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Clock,
   FlaskConical,
+  Users,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Header } from '@/components/layout/header';
@@ -26,14 +27,16 @@ import { formatDate } from '@/lib/utils';
 import { useAuth } from '@/lib/firebase/auth-context';
 
 interface ProjectItem {
-  id: string;
+  id: number;
   name: string;
   description: string;
+  userId: string;
   createdAt: string;
+  isOwner?: boolean;
   testCaseCount: number;
   runCount: number;
   lastRun?: {
-    id: string;
+    id: number;
     name: string;
     status: string;
     executedAt: string;
@@ -41,8 +44,8 @@ interface ProjectItem {
 }
 
 interface RecentRun {
-  id: string;
-  projectId: string;
+  id: number;
+  projectId: number;
   projectName: string;
   name: string;
   status: string;
@@ -74,9 +77,13 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const query = new URLSearchParams();
+      if (user?.uid) query.set('userId', user.uid);
+      if (user?.email) query.set('userEmail', user.email);
+
       const [projRes, statsRes] = await Promise.all([
-        fetch('/api/projects'),
-        fetch('/api/dashboard/stats'),
+        fetch(`/api/projects?${query.toString()}`),
+        fetch(`/api/dashboard/stats?${query.toString()}`),
       ]);
 
       const projData = await projRes.json();
@@ -93,8 +100,10 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   const handleSeedData = async () => {
     setSeeding(true);
@@ -102,7 +111,10 @@ export default function DashboardPage() {
       await fetch('/api/seed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.uid || 'demo-user-1' }),
+        body: JSON.stringify({
+          userId: user?.uid || 'demo-user-1',
+          userEmail: user?.email || 'qa.lead@regressionhub.io',
+        }),
       });
       await fetchData();
     } catch (err) {
@@ -152,7 +164,7 @@ export default function DashboardPage() {
           <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm relative overflow-hidden group">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Total Projects
+                My Projects
               </span>
               <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
                 <FolderGit2 className="w-4 h-4" />
@@ -161,7 +173,7 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold text-white tracking-tight">
               {stats.totalProjects}
             </div>
-            <p className="text-xs text-slate-400 mt-1">Across all workspace repositories</p>
+            <p className="text-xs text-slate-400 mt-1">Accessible repository suites</p>
           </div>
 
           {/* Card 2: Test Cases */}
@@ -227,7 +239,7 @@ export default function DashboardPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight">Projects</h2>
-              <p className="text-xs text-slate-400">All registered applications and test repositories</p>
+              <p className="text-xs text-slate-400">Projects you own or have been invited to</p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -288,6 +300,16 @@ export default function DashboardPage() {
                         <span>{p.name}</span>
                         <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-cyan-400" />
                       </Link>
+
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                          p.isOwner
+                            ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}
+                      >
+                        {p.isOwner ? 'Owner' : 'Member'}
+                      </span>
                     </div>
 
                     <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">

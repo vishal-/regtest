@@ -19,8 +19,9 @@ import { useAuth } from '@/lib/firebase/auth-context';
 import { cn } from '@/lib/utils';
 
 interface ProjectOption {
-  id: string;
+  id: number;
   name: string;
+  isOwner?: boolean;
 }
 
 export function Sidebar() {
@@ -30,15 +31,26 @@ export function Sidebar() {
   const [projectsList, setProjectsList] = useState<ProjectOption[]>([]);
 
   useEffect(() => {
-    fetch('/api/projects')
+    if (!user) return;
+    const query = new URLSearchParams();
+    if (user.uid) query.set('userId', user.uid);
+    if (user.email) query.set('userEmail', user.email);
+
+    fetch(`/api/projects?${query.toString()}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.projects) {
-          setProjectsList(data.projects.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })));
+          setProjectsList(
+            data.projects.map((p: { id: number; name: string; isOwner?: boolean }) => ({
+              id: p.id,
+              name: p.name,
+              isOwner: p.isOwner,
+            }))
+          );
         }
       })
       .catch(() => {});
-  }, [pathname]);
+  }, [pathname, user]);
 
   const handleLogout = async () => {
     await signOut();
@@ -107,7 +119,7 @@ export function Sidebar() {
         <div className="space-y-1">
           <div className="flex items-center justify-between px-3">
             <span className="text-[11px] font-semibold text-slate-500 tracking-wider uppercase">
-              Projects ({projectsList.length})
+              My Projects ({projectsList.length})
             </span>
             <Link
               href="/projects/new"
@@ -120,7 +132,7 @@ export function Sidebar() {
 
           <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
             {projectsList.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-600 italic">No projects yet</div>
+              <div className="px-3 py-2 text-xs text-slate-600 italic">No accessible projects</div>
             ) : (
               projectsList.map((p) => {
                 const isActive = pathname.startsWith(`/projects/${p.id}`);
@@ -168,10 +180,10 @@ export function Sidebar() {
             </div>
             <div className="truncate">
               <div className="text-xs font-semibold text-slate-200 truncate">
-                {user?.displayName || 'Demo Tester'}
+                {user?.displayName || 'User'}
               </div>
               <div className="text-[10px] text-slate-500 truncate">
-                {user?.email || 'qa.lead@regressionhub.io'}
+                {user?.email || 'user@company.com'}
               </div>
             </div>
           </div>

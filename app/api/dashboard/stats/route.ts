@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureTablesExist } from '@/lib/db';
-import { projects, testCases, testRuns, testResults } from '@/lib/db/schema';
+import { projects, projectMembers, testCases, testRuns, testResults } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
@@ -8,10 +8,23 @@ export async function GET(request: NextRequest) {
     await ensureTablesExist();
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const userEmail = searchParams.get('userEmail');
 
     let allProjects = await db.select().from(projects);
-    if (userId) {
-      allProjects = allProjects.filter((p) => p.userId === userId);
+
+    if (userId || userEmail) {
+      const memberRows = await db.select().from(projectMembers);
+      const accessibleProjectIds = new Set<number>();
+
+      memberRows.forEach((m) => {
+        if ((userId && m.userId === userId) || (userEmail && m.userEmail === userEmail)) {
+          accessibleProjectIds.add(m.projectId);
+        }
+      });
+
+      allProjects = allProjects.filter(
+        (p) => (userId && p.userId === userId) || accessibleProjectIds.has(p.id)
+      );
     }
 
     const projectIds = new Set(allProjects.map((p) => p.id));

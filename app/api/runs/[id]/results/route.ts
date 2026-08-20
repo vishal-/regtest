@@ -9,7 +9,8 @@ export async function PATCH(
 ) {
   try {
     await ensureTablesExist();
-    const { id: testRunId } = await params;
+    const { id } = await params;
+    const numericRunId = Number(id);
     const body = await request.json();
     const { resultId, testCaseId, status, actualResult, notes } = body;
 
@@ -25,12 +26,12 @@ export async function PATCH(
     if (notes !== undefined) updatePayload.notes = notes;
 
     if (resultId) {
-      await db.update(testResults).set(updatePayload).where(eq(testResults.id, resultId));
+      await db.update(testResults).set(updatePayload).where(eq(testResults.id, Number(resultId)));
     } else if (testCaseId) {
       await db
         .update(testResults)
         .set(updatePayload)
-        .where(eq(testResults.testCaseId, testCaseId));
+        .where(eq(testResults.testCaseId, Number(testCaseId)));
     } else {
       return NextResponse.json({ error: 'resultId or testCaseId required' }, { status: 400 });
     }
@@ -39,7 +40,7 @@ export async function PATCH(
     const allResults = await db
       .select()
       .from(testResults)
-      .where(eq(testResults.testRunId, testRunId));
+      .where(eq(testResults.testRunId, numericRunId));
 
     const total = allResults.length;
     const pendingCount = allResults.filter((r) => r.status === 'PENDING').length;
@@ -54,7 +55,7 @@ export async function PATCH(
       await db
         .update(testRuns)
         .set({ status: runStatus, completedAt })
-        .where(eq(testRuns.id, testRunId));
+        .where(eq(testRuns.id, numericRunId));
     }
 
     return NextResponse.json({

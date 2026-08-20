@@ -1,22 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureTablesExist } from '@/lib/db';
-import { projects, testCases, testRuns } from '@/lib/db/schema';
-import { generateId } from '@/lib/utils';
-import { eq, desc } from 'drizzle-orm';
+import { projects, projectMembers, testCases, testRuns } from '@/lib/db/schema';
+import { eq, desc, or, inArray } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
     await ensureTablesExist();
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const userEmail = searchParams.get('userEmail');
 
-    let allProjects;
-    if (userId) {
-      allProjects = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.userId, userId))
-        .orderBy(desc(projects.createdAt));
+    let allProjects: (typeof projects.$inferSelect)[] = [];
+
+    if (userId || userEmail) {
+      // Find all project IDs where user is a registered member
+      const memberRows = await db.select().from(projectMembers);
+      const accessibleProjectIds = new Set<number>();
+
+      memberRows.forEach((m) => {
+        if ((userId && m.userId === userId) || (userEmail && m.userEmail === userEmail)) {
+          accessibleProjectIds.add(m.projectId);
+        }
+      });
+
+      // Find projects owned by user OR in member list
+      const allRows = await db.select().from(projects).orderBy(desc(projects.createdAt));
+      allProjects = allRows.filter(
+        (p) => (userId && p.userId === userId) || accessibleProjectIds.has(p.id)
+      );
     } else {
       allProjects = await db
         .select()
@@ -24,7 +35,7 @@ export async function GET(request: NextRequest) {
         .orderBy(desc(projects.createdAt));
     }
 
-    // Enhance with test case counts & runs count
+    // Enhance with test case counts, runs count, and role
     const enhanced = await Promise.all(
       allProjects.map(async (project) => {
         const cases = await db
@@ -36,8 +47,11 @@ export async function GET(request: NextRequest) {
           .from(testRuns)
           .where(eq(testRuns.projectId, project.id));
 
+        const isOwner = userId ? project.userId === userId : true;
+
         return {
           ...project,
+          isOwner,
           testCaseCount: cases.length,
           runCount: runs.length,
           lastRun: runs[runs.length - 1] || null,
@@ -56,21 +70,35 @@ export async function POST(request: NextRequest) {
   try {
     await ensureTablesExist();
     const body = await request.json();
-    const { name, description, userId } = body;
+    const { name, description, userId, userEmail } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
     }
 
-    const newProject = {
-      id: generateId('prj'),
-      name,
-      description: description || '',
-      userId: userId || 'demo-user-1',
-      createdAt: new Date().toISOString(),
-    };
+    const creatorId = userId || 'demo-user-1';
+    const now = new Date().toISOString();
 
-    await db.insert(projects).values(newProject);
+    const insertResult = await db
+      .insert(projects)
+      .values({
+        name,
+        description: description || '',
+        userId: creatorId,
+        createdAt: now,
+      })
+      .returning();
+
+    const newProject = insertResult[0];
+
+    // Automatically add creator as OWNER in project_members
+    await db.insert(projectMembers).values({
+      projectId: newProject.id,
+      userId: creatorId,
+      userEmail: userEmail || null,
+      role: 'OWNER',
+      addedAt: now,
+    });
 
     return NextResponse.json({ project: newProject }, { status: 201 });
   } catch (error) {

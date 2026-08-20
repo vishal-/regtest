@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureTablesExist } from '@/lib/db';
-import { projects, testCases, testRuns, testResults } from '@/lib/db/schema';
-import { generateId } from '@/lib/utils';
+import { projects, projectMembers, testCases, testRuns, testResults } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
@@ -9,28 +8,40 @@ export async function POST(request: NextRequest) {
     await ensureTablesExist();
     const body = await request.json().catch(() => ({}));
     const userId = body.userId || 'demo-user-1';
+    const userEmail = body.userEmail || 'qa.lead@regressionhub.io';
 
-    // Check if demo project already exists
+    // Check if user already owns projects
     const existing = await db.select().from(projects).where(eq(projects.userId, userId));
     if (existing.length > 0) {
       return NextResponse.json({ message: 'Projects already exist', projectId: existing[0].id });
     }
 
     // Create E-Commerce Web Demo Project
-    const projectId = generateId('prj');
-    await db.insert(projects).values({
-      id: projectId,
-      name: 'E-Commerce Storefront & Checkout',
-      description: 'Core web application handling customer auth, product catalog, cart, and Stripe billing.',
+    const insertedProjects = await db
+      .insert(projects)
+      .values({
+        name: 'E-Commerce Storefront & Checkout',
+        description: 'Core web application handling customer auth, product catalog, cart, and Stripe billing.',
+        userId,
+        createdAt: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString(),
+      })
+      .returning();
+
+    const newProject = insertedProjects[0];
+
+    // Add creator as OWNER in project_members
+    await db.insert(projectMembers).values({
+      projectId: newProject.id,
       userId,
-      createdAt: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString(),
+      userEmail,
+      role: 'OWNER',
+      addedAt: new Date().toISOString(),
     });
 
     // Sample Test Cases
     const sampleCases = [
       {
-        id: generateId('tc'),
-        projectId,
+        projectId: newProject.id,
         module: 'Auth',
         priority: 'P0',
         title: 'User logs in successfully with valid Google OAuth',
@@ -39,8 +50,7 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
       },
       {
-        id: generateId('tc'),
-        projectId,
+        projectId: newProject.id,
         module: 'Auth',
         priority: 'P1',
         title: 'Invalid password shows friendly error message',
@@ -49,8 +59,7 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
       },
       {
-        id: generateId('tc'),
-        projectId,
+        projectId: newProject.id,
         module: 'Billing',
         priority: 'P0',
         title: 'Complete credit card checkout with 3D Secure verification',
@@ -59,8 +68,7 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
       },
       {
-        id: generateId('tc'),
-        projectId,
+        projectId: newProject.id,
         module: 'Checkout',
         priority: 'P0',
         title: 'Apply 20% promo discount code at checkout',
@@ -69,8 +77,7 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
       },
       {
-        id: generateId('tc'),
-        projectId,
+        projectId: newProject.id,
         module: 'Billing',
         priority: 'P2',
         title: 'Download PDF invoice from order history',
@@ -79,8 +86,7 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
       },
       {
-        id: generateId('tc'),
-        projectId,
+        projectId: newProject.id,
         module: 'Cart',
         priority: 'P1',
         title: 'Cart persistence across browser tab refresh',
@@ -90,26 +96,30 @@ export async function POST(request: NextRequest) {
       },
     ];
 
+    const insertedCases = [];
     for (const tc of sampleCases) {
-      await db.insert(testCases).values(tc);
+      const inserted = await db.insert(testCases).values(tc).returning();
+      insertedCases.push(inserted[0]);
     }
 
     // Create a sample completed run
-    const runId = generateId('run');
-    await db.insert(testRuns).values({
-      id: runId,
-      projectId,
-      name: 'Sprint 24 Regression - Smoke Suite',
-      status: 'PASSED',
-      executedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-      completedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000 + 15 * 60 * 1000).toISOString(),
-    });
+    const insertedRuns = await db
+      .insert(testRuns)
+      .values({
+        projectId: newProject.id,
+        name: 'Sprint 24 Regression - Smoke Suite',
+        status: 'PASSED',
+        executedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+        completedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000 + 15 * 60 * 1000).toISOString(),
+      })
+      .returning();
 
-    for (let i = 0; i < sampleCases.length; i++) {
-      const tc = sampleCases[i];
+    const sampleRun = insertedRuns[0];
+
+    for (let i = 0; i < insertedCases.length; i++) {
+      const tc = insertedCases[i];
       await db.insert(testResults).values({
-        id: generateId('res'),
-        testRunId: runId,
+        testRunId: sampleRun.id,
         testCaseId: tc.id,
         status: i === 4 ? 'SKIPPED' : 'PASSED',
         actualResult: i === 4 ? 'PDF service mocked in staging' : 'Verified as expected in Chrome v128',
@@ -118,7 +128,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, projectId, runId });
+    return NextResponse.json({ success: true, projectId: newProject.id, runId: sampleRun.id });
   } catch (error) {
     console.error('Seed failed:', error);
     return NextResponse.json({ error: 'Failed to seed sample data' }, { status: 500 });

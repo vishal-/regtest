@@ -43,6 +43,7 @@ export default function NewProjectPage() {
           name: name.trim(),
           description: description.trim(),
           userId: user?.uid || 'demo-user-1',
+          userEmail: user?.email || null,
         }),
       });
 

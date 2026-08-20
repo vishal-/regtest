@@ -26,7 +26,7 @@ import { StatusBadge, PriorityBadge, ModuleTag } from '@/components/ui/badges';
 import confetti from 'canvas-confetti';
 
 interface TestCaseInfo {
-  id: string;
+  id: number;
   title: string;
   module: string;
   priority: string;
@@ -35,9 +35,9 @@ interface TestCaseInfo {
 }
 
 interface TestResultItem {
-  id: string;
-  testRunId: string;
-  testCaseId: string;
+  id: number;
+  testRunId: number;
+  testCaseId: number;
   status: string;
   actualResult?: string | null;
   notes?: string | null;
@@ -47,14 +47,14 @@ interface TestResultItem {
 
 interface RunData {
   run: {
-    id: string;
-    projectId: string;
+    id: number;
+    projectId: number;
     name: string;
     status: string;
     executedAt: string;
   };
   project?: {
-    id: string;
+    id: number;
     name: string;
   } | null;
   results: TestResultItem[];

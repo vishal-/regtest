@@ -19,8 +19,8 @@ import { Header } from '@/components/layout/header';
 import { PriorityBadge, ModuleTag } from '@/components/ui/badges';
 
 interface TestCase {
-  id: string;
-  projectId: string;
+  id: number;
+  projectId: number;
   module: string;
   priority: string;
   title: string;
@@ -39,7 +39,7 @@ export default function NewRunPage({
 
   const [projectName, setProjectName] = useState('Project');
   const [testCases, setTestCases] = useState<TestCase[]>([]);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [runName, setRunName] = useState(
     `Regression Run - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
   );
@@ -81,7 +81,7 @@ export default function NewRunPage({
     setSelectedIds(testCases.filter((tc) => tc.module === mod).map((tc) => tc.id));
   };
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: number) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );

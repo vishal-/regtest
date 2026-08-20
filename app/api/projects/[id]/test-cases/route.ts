@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureTablesExist } from '@/lib/db';
 import { testCases } from '@/lib/db/schema';
-import { generateId } from '@/lib/utils';
 import { eq, desc } from 'drizzle-orm';
 
 export async function GET(
@@ -11,11 +10,12 @@ export async function GET(
   try {
     await ensureTablesExist();
     const { id } = await params;
+    const numericProjectId = Number(id);
 
     const list = await db
       .select()
       .from(testCases)
-      .where(eq(testCases.projectId, id))
+      .where(eq(testCases.projectId, numericProjectId))
       .orderBy(desc(testCases.createdAt));
 
     return NextResponse.json({ testCases: list });
@@ -31,7 +31,8 @@ export async function POST(
 ) {
   try {
     await ensureTablesExist();
-    const { id: projectId } = await params;
+    const { id } = await params;
+    const numericProjectId = Number(id);
     const body = await request.json();
     const { title, module, priority, description, expectedResult } = body;
 
@@ -42,20 +43,20 @@ export async function POST(
       );
     }
 
-    const newTestCase = {
-      id: generateId('tc'),
-      projectId,
-      title,
-      module,
-      priority: priority.toUpperCase(),
-      description: description || '',
-      expectedResult,
-      createdAt: new Date().toISOString(),
-    };
+    const inserted = await db
+      .insert(testCases)
+      .values({
+        projectId: numericProjectId,
+        title,
+        module,
+        priority: priority.toUpperCase(),
+        description: description || '',
+        expectedResult,
+        createdAt: new Date().toISOString(),
+      })
+      .returning();
 
-    await db.insert(testCases).values(newTestCase);
-
-    return NextResponse.json({ testCase: newTestCase }, { status: 201 });
+    return NextResponse.json({ testCase: inserted[0] }, { status: 201 });
   } catch (error) {
     console.error('Failed to create test case:', error);
     return NextResponse.json({ error: 'Failed to create test case' }, { status: 500 });
