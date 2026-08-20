@@ -2,8 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ChevronRight, Plus, Play, Sparkles } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 interface HeaderProps {
   title?: string;
@@ -15,7 +14,17 @@ interface HeaderProps {
 export function Header({ title, subtitle, breadcrumbs, actions }: HeaderProps) {
   return (
     <header className="h-16 border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-20">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3.5">
+        <Link href="/dashboard" className="flex items-center gap-2 shrink-0 group" title="RegTest Dashboard">
+          <img
+            src="/logo-main.png"
+            alt="RegTest App Logo"
+            className="w-8 h-8 rounded-lg object-contain group-hover:scale-105 transition-transform drop-shadow-sm"
+          />
+        </Link>
+
+        <div className="h-4 w-px bg-slate-800 shrink-0" />
+
         {breadcrumbs && breadcrumbs.length > 0 ? (
           <nav className="flex items-center space-x-1.5 text-xs text-slate-400">
             {breadcrumbs.map((crumb, idx) => {

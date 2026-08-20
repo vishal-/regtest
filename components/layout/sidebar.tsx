@@ -79,9 +79,11 @@ export function Sidebar() {
       {/* Brand Header */}
       <div className="h-16 border-b border-slate-800/80 flex items-center justify-between px-5">
         <Link href="/dashboard" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/20 group-hover:scale-105 transition-transform">
-            <ShieldCheck className="w-5 h-5 text-white" />
-          </div>
+          <img
+            src="/logo-main.png"
+            alt="RegTest Logo"
+            className="w-8 h-8 rounded-lg object-contain group-hover:scale-105 transition-transform drop-shadow-sm"
+          />
           <div>
             <span className="font-bold text-white tracking-tight flex items-center gap-1.5 text-base">
               RegTest <span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-mono">Hub</span>

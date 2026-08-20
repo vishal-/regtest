@@ -127,8 +127,12 @@ export default function LoginPage() {
         <div className="lg:col-span-5">
           <div className="p-8 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-xl shadow-2xl shadow-black/50 space-y-6">
             <div className="space-y-1 text-center">
-              <div className="inline-flex w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 items-center justify-center text-white shadow-lg shadow-cyan-500/25 mb-2">
-                <ShieldCheck className="w-6 h-6" />
+              <div className="flex justify-center mb-2">
+                <img
+                  src="/logo-main.png"
+                  alt="RegTest App Logo"
+                  className="w-12 h-12 rounded-xl object-contain drop-shadow-md"
+                />
               </div>
               <h2 className="text-xl font-bold text-white">
                 {isSignUp ? 'Create your account' : 'Sign in to RegTest'}
