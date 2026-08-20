@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, ensureTablesExist } from '@/lib/db';
 import { projects, projectMembers, testCases, testRuns, testResults } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, ne } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
@@ -148,17 +148,39 @@ export async function PATCH(
       );
     }
 
+    if (name && name.trim() !== projectList[0].name) {
+      const duplicateName = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(and(ne(projects.id, numericProjectId), eq(projects.name, name.trim())))
+        .limit(1);
+
+      if (duplicateName.length > 0) {
+        return NextResponse.json(
+          { error: `A project with the name "${name.trim()}" already exists. Project names must be unique.` },
+          { status: 409 }
+        );
+      }
+    }
+
     await db
       .update(projects)
       .set({
-        ...(name ? { name } : {}),
-        ...(description !== undefined ? { description } : {}),
+        ...(name ? { name: name.trim() } : {}),
+        ...(description !== undefined ? { description: description.trim() } : {}),
       })
       .where(eq(projects.id, numericProjectId));
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to update project:', error);
+    const msg = error instanceof Error ? error.message : '';
+    if (msg.includes('UNIQUE constraint failed') || msg.includes('idx_projects')) {
+      return NextResponse.json(
+        { error: 'A project with this name or key already exists. Both must be unique.' },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ error: 'Failed to update project' }, { status: 500 });
   }
 }

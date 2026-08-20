@@ -2,8 +2,8 @@ import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
 export const projects = sqliteTable('projects', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  key: text('key').notNull().default('PRJ'), // e.g. 'ESC', 'AUTH', 'SB' (2-4 uppercase letters)
-  name: text('name').notNull(),
+  key: text('key').notNull().unique(), // e.g. 'ESC', 'AUTH', 'SB' (unique 2-4 uppercase letters)
+  name: text('name').notNull().unique(), // Unique project name
   description: text('description'),
   userId: text('user_id').notNull(), // Creator / Owner user ID
   createdAt: text('created_at').notNull(),

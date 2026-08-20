@@ -86,12 +86,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A valid project key/initials of at least 2 characters is mandatory' }, { status: 400 });
     }
 
+    // Check if project with same name or key exists
+    const existingName = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.name, name.trim()))
+      .limit(1);
+    if (existingName.length > 0) {
+      return NextResponse.json(
+        { error: `A project with the name "${name.trim()}" already exists. Project names must be unique.` },
+        { status: 409 }
+      );
+    }
+
+    const existingKey = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.key, projectKey))
+      .limit(1);
+    if (existingKey.length > 0) {
+      return NextResponse.json(
+        { error: `A project with the key "${projectKey}" already exists. Project keys must be unique.` },
+        { status: 409 }
+      );
+    }
+
     const insertResult = await db
       .insert(projects)
       .values({
-        name,
+        name: name.trim(),
         key: projectKey,
-        description: description || '',
+        description: description ? description.trim() : '',
         userId: creatorId,
         createdAt: now,
       })
@@ -109,8 +134,15 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ project: newProject }, { status: 201 });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Failed to create project:', error);
+    const msg = error instanceof Error ? error.message : '';
+    if (msg.includes('UNIQUE constraint failed') || msg.includes('idx_projects_key')) {
+      return NextResponse.json(
+        { error: 'A project with this name or key already exists. Both must be unique.' },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ error: 'Failed to create project' }, { status: 500 });
   }
 }

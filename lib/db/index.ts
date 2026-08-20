@@ -16,7 +16,7 @@ export const client = createClient({
 
 export const db = drizzle(client, { schema });
 
-// Helper to auto-create tables and migrate missing columns
+// Helper to auto-create tables, unique constraints and migrate missing columns
 let tablesInitialized = false;
 
 export async function ensureTablesExist() {
@@ -25,8 +25,8 @@ export async function ensureTablesExist() {
     await client.execute(`
       CREATE TABLE IF NOT EXISTS projects (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        key TEXT NOT NULL DEFAULT 'PRJ',
-        name TEXT NOT NULL,
+        key TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL UNIQUE,
         description TEXT,
         user_id TEXT NOT NULL,
         created_at TEXT NOT NULL
@@ -93,6 +93,15 @@ export async function ensureTablesExist() {
 
     try {
       await client.execute(`ALTER TABLE test_cases ADD COLUMN code TEXT NOT NULL DEFAULT 'TC-1';`);
+    } catch (_) {}
+
+    // Enforce unique indexes for project key and project name
+    try {
+      await client.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_key ON projects(key);`);
+    } catch (_) {}
+
+    try {
+      await client.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_name ON projects(name);`);
     } catch (_) {}
 
     tablesInitialized = true;
