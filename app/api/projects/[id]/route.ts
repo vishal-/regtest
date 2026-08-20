@@ -88,9 +88,22 @@ export async function GET(
       })
     );
 
+    const latestRunResults = runs.length > 0
+      ? await db
+          .select()
+          .from(testResults)
+          .where(eq(testResults.testRunId, runs[0].id))
+      : [];
+
+    const latestResultMap = new Map<number, string>();
+    latestRunResults.forEach((r) => {
+      latestResultMap.set(r.testCaseId, r.status);
+    });
+
     const enhancedCases = cases.map((tc) => ({
       ...tc,
       code: tc.code || `${project.key || 'TC'}-${tc.caseNumber || tc.id}`,
+      lastRunStatus: latestResultMap.get(tc.id) || null,
     }));
 
     return NextResponse.json({
@@ -99,6 +112,7 @@ export async function GET(
       members,
       testCases: enhancedCases,
       testRuns: runsWithStats,
+      lastRun: runsWithStats[0] || null,
     });
   } catch (error) {
     console.error('Failed to fetch project details:', error);

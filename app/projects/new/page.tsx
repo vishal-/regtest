@@ -43,6 +43,12 @@ export default function NewProjectPage() {
       return;
     }
 
+    const finalKey = (key || generateProjectKey(name)).trim().toUpperCase();
+    if (!finalKey || finalKey.length < 2) {
+      setError('Project Key / Initials is mandatory (at least 2 uppercase characters, e.g. ESC)');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -52,7 +58,7 @@ export default function NewProjectPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
-          key: (key || generateProjectKey(name)).trim().toUpperCase(),
+          key: finalKey,
           description: description.trim(),
           userId: user?.uid || 'demo-user-1',
           userEmail: user?.email || null,

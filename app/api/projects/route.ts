@@ -82,6 +82,10 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
     const projectKey = generateProjectKey(name, key);
 
+    if (!projectKey || projectKey.length < 2) {
+      return NextResponse.json({ error: 'A valid project key/initials of at least 2 characters is mandatory' }, { status: 400 });
+    }
+
     const insertResult = await db
       .insert(projects)
       .values({
