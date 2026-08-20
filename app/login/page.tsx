@@ -95,13 +95,13 @@ export default function LoginPage() {
               </span>
             </h1>
             <p className="text-slate-400 text-base max-w-lg leading-relaxed">
-              Organize functional modules, create targeted test runs, and execute regression test cycles with zero latency powered by Turso distributed SQLite.
+              Organize functional modules, create targeted test runs, and execute regression test cycles with zero latency.
             </p>
           </div>
 
           {/* Value feature list */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm">
+            {/* <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm">
               <div className="flex items-center gap-3 mb-2 text-cyan-400">
                 <PlayCircle className="w-5 h-5" />
                 <span className="font-semibold text-sm text-slate-200">Interactive Runner</span>
@@ -109,9 +109,9 @@ export default function LoginPage() {
               <p className="text-xs text-slate-400 leading-normal">
                 Dedicated split-screen console with keyboard shortcuts for rapid Pass/Fail testing.
               </p>
-            </div>
+            </div> */}
 
-            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm">
+            {/* <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm">
               <div className="flex items-center gap-3 mb-2 text-indigo-400">
                 <Database className="w-5 h-5" />
                 <span className="font-semibold text-sm text-slate-200">Drizzle + Turso DB</span>
@@ -119,7 +119,7 @@ export default function LoginPage() {
               <p className="text-xs text-slate-400 leading-normal">
                 Type-safe ORM schema with distributed SQLite edge replication and zero connection bottlenecks.
               </p>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -176,15 +176,15 @@ export default function LoginPage() {
               <span>Continue with Google</span>
             </button>
 
-            <div className="relative flex items-center justify-center">
+            {/* <div className="relative flex items-center justify-center">
               <div className="border-t border-slate-800 w-full" />
               <span className="bg-slate-900 px-3 text-[11px] uppercase tracking-wider text-slate-500 absolute">
                 Or with email
               </span>
-            </div>
+            </div> */}
 
             {/* Email form */}
-            <form onSubmit={handleEmailAuth} className="space-y-3.5">
+            {/* <form onSubmit={handleEmailAuth} className="space-y-3.5">
               {isSignUp && (
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">Full Name</label>
@@ -236,9 +236,9 @@ export default function LoginPage() {
                 <span>{isSignUp ? 'Create Account' : 'Sign In'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-            </form>
+            </form> */}
 
-            <div className="text-center">
+            {/* <div className="text-center">
               <button
                 type="button"
                 onClick={() => setIsSignUp(!isSignUp)}
@@ -246,10 +246,10 @@ export default function LoginPage() {
               >
                 {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
               </button>
-            </div>
+            </div> */}
 
             {/* Fast 1-Click Demo Sandbox Login */}
-            <div className="pt-4 border-t border-slate-800/80 space-y-2">
+            {/* <div className="pt-4 border-t border-slate-800/80 space-y-2">
               <div className="text-center">
                 <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                   Instant Demo Access
@@ -271,7 +271,7 @@ export default function LoginPage() {
                   ⚡ SDET Demo
                 </button>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
