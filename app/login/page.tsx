@@ -19,7 +19,7 @@ import { useAuth } from '@/lib/firebase/auth-context';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsDemoUser, isFirebaseReady } = useAuth();
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsDemoUser } = useAuth();
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');

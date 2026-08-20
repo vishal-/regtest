@@ -10,7 +10,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth';
 import Cookies from 'js-cookie';
-import { auth, googleProvider, isFirebaseConfigured } from './client';
+import { auth, googleProvider } from './client';
 
 export interface AppUser {
   uid: string;
@@ -23,7 +23,6 @@ export interface AppUser {
 interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
-  isFirebaseReady: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   signUpWithEmail: (email: string, pass: string) => Promise<void>;
@@ -73,45 +72,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    if (isFirebaseConfigured && auth) {
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-        if (firebaseUser) {
-          const token = await firebaseUser.getIdToken();
-          const appUser: AppUser = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
-            photoURL: firebaseUser.photoURL,
-          };
-          updateSession(appUser, token);
-        } else {
-          // If no active demo user either, clear
-          if (!localStorage.getItem(DEMO_USER_STORAGE_KEY)) {
-            updateSession(null);
-          }
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        const token = await firebaseUser.getIdToken();
+        const appUser: AppUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+          photoURL: firebaseUser.photoURL,
+        };
+        updateSession(appUser, token);
+      } else {
+        if (!localStorage.getItem(DEMO_USER_STORAGE_KEY)) {
+          updateSession(null);
         }
-        setLoading(false);
-      });
-      return () => unsubscribe();
-    } else {
-      // Default to demo session if neither firebase nor saved user exists
-      const fallbackUser: AppUser = {
-        uid: 'demo-user-1',
-        email: 'qa.lead@regressionhub.io',
-        displayName: 'Alex Rivers (QA Lead)',
-        isDemo: true,
-      };
-      updateSession(fallbackUser);
+      }
       setLoading(false);
-    }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const signInWithGoogle = async () => {
-    if (!isFirebaseConfigured || !auth) {
-      // Fallback demo login
-      signInAsDemoUser('Google Tester', 'tester@google.com');
-      return;
-    }
     const result = await signInWithPopup(auth, googleProvider);
     const token = await result.user.getIdToken();
     const appUser: AppUser = {
@@ -124,10 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithEmail = async (email: string, pass: string) => {
-    if (!isFirebaseConfigured || !auth) {
-      signInAsDemoUser(email.split('@')[0], email);
-      return;
-    }
     const result = await signInWithEmailAndPassword(auth, email, pass);
     const token = await result.user.getIdToken();
     const appUser: AppUser = {
@@ -139,10 +117,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUpWithEmail = async (email: string, pass: string) => {
-    if (!isFirebaseConfigured || !auth) {
-      signInAsDemoUser(email.split('@')[0], email);
-      return;
-    }
     const result = await createUserWithEmailAndPassword(auth, email, pass);
     const token = await result.user.getIdToken();
     const appUser: AppUser = {
@@ -164,9 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    if (isFirebaseConfigured && auth) {
-      await firebaseSignOut(auth);
-    }
+    await firebaseSignOut(auth);
     updateSession(null);
   };
 
@@ -175,7 +147,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         loading,
-        isFirebaseReady: isFirebaseConfigured,
         signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,
